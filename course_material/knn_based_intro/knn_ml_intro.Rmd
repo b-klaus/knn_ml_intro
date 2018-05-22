@@ -38,7 +38,7 @@ print(date())
 # Preparations
 
 We first set global chunk options and load the
-necessary packages and the data.
+necessary packages.
 
 ```{r setup, cache = FALSE}
 library("rmarkdown")
@@ -56,7 +56,7 @@ library("RColorBrewer")
 library("mlr")
 library("psych")
 
-set.seed(789)
+set.seed(222)
 
 theme_set(theme_solarized(base_size = 18))
 ```
@@ -65,18 +65,20 @@ theme_set(theme_solarized(base_size = 18))
 # Introduction
 
 In this tutorial, we will import data from a [high content screen](https://en.wikipedia.org/wiki/High-content_screening) performed
-on [HeLA](https://en.wikipedia.org/wiki/HeLa)^[HeLA cells are a human cell line]
-cells in 96 well plates 
-over a time course.
+on [HeLA](https://en.wikipedia.org/wiki/HeLa)^[HeLA cells is a human cell line]
+cells in 96 well plates. 
 
  <img src="96microplate.jpg" alt="96 well plate" fig.cap="96 well plate" height="100%" width="100%">
 
-[siRNAs](https://en.wikipedia.org/wiki/Small_interfering_RNA) have been added to a subset of the  wells in order to inhibit the activity
-of certain genes. The cells where then imaged and their (phenotype)[https://en.wikipedia.org/wiki/Phenotype] recorded ([phenotypic screening](https://en.wikipedia.org/wiki/Phenotypic_screening)).
+[siRNAs](https://en.wikipedia.org/wiki/Small_interfering_RNA) have been added to 
+some of the  wells in order to inhibit the activity
+of certain genes. The cells where then imaged over time and their (phenotype)[https://en.wikipedia.org/wiki/Phenotype] recorded ^[The "phenotype" 
+refers the the physical appearance of the cell as shown by the microscopy images. See Wikipedia on [phenotypic screening](https://en.wikipedia.org/wiki/Phenotypic_screening].
 
 The input data that we are going to use contains phenotypic class labels for 
 each single cell. We want to use these class labels as features 
-which in order to predict whether a well has been treated or not.
+which in order to predict whether a well has been transfected with an
+siRNA or not.
 
 These phenotypic classes of the single cells
 have been obtained using a machine  learning algorithm based on the original image 
@@ -177,8 +179,8 @@ input_data
 
 ## Grouping, summarizing and data transformation
 
-Before we can can continue with the data analysis 
-, we have to make sure that the variables that
+Before we can can continue with the data analysis, 
+we have to make sure that the variables that
 we have obtained for every single well are normalized. As our data consists
 of the number of cells in each phenotypic category, a straightforward normalization 
 consists of transforming the counts into percentages by dividing the data
@@ -223,7 +225,7 @@ Here, we use the chaining/piping operator `%>%` to "pipe" the result of a
 computation into the next. This leads to more digestible code compared to e.g. loops. 
 
 
-# Input data after pre--processing
+## Input data after pre--processing
 
 The input data contains the screen annotation as well as 
 the [logit](https://en.wikipedia.org/wiki/Logit)--transformed class 
@@ -240,7 +242,7 @@ cells, while the other classes correspond to abnormal phenotypes.
 
 We now spread the long table again and discard information not 
 needed for ML so that we retain only the features and the 
-target variables, i.e. the `Group` column.
+target variable, i.e. the `Group` column.
 
 ```{r getDataForML}
 data_for_ML <- select(data_processed, class, Well, Group, z_score) %>%
@@ -281,11 +283,6 @@ the dimensionality of the data.
 
 # Interlude: Principal Component Analysis
 
-
-PCA (Principal component analysis) is a technique to create a low dimensional representation of a high--dimensional data set. In our case we have 10--dimensional
-data (10 different phenotype classes) that we will reduce down to two Principal
-components. This lower dimensional data is then useful for plotting.
-
 The data we have lives in a ten dimensional space, as every well contains
 cells classified into one of ten different classes. In order to produce a succinct
 overview of the data, one tries to reduce the dimensionality of the data.
@@ -302,7 +299,7 @@ We also create a vector `genes`, giving us the gene each of our siRNAs is target
 
 We then create a ggplot object by mapping the first principal component to the 
 x-- and the second one to the y--axis. We use the gene names as plotting symbols
-and  color the names according to to the gene name (As we have multiple empty wells
+and  color the names according to to the gene name (We have multiple empty wells
 as well as multiple siRNAs targeting the same gene).
 
 Furthermore, we specify that the aspect ratio of x and y axis should be equal to 
@@ -395,7 +392,7 @@ to the correlation of the original variables with the computed principal compone
 We can investigate this relationship by plotting the correlations of the original
 variables with the components in a circle. 
 
-```{r coCircle, dependson="var_imp", fig.small=TRUE}
+```{r coCircle, dependson="var_imp", fig.small=TRUE, fig.cap="Correlation Circle"}
 fviz_pca_var(PCA, col.circle = "black", 
              title = "Correlation Circle for the PCA") + 
               coord_equal() 
@@ -430,7 +427,7 @@ might thus not perform very well in these settings.
 
 We can use the `r CRANpkg("mlr")`--function `listLearner()` to find R functions 
 implementing knn. We use the function `knn` from the package `class`. In 
-`r CRANpkg("mlr")`this function is wrapped as `classif.knn`.
+`r CRANpkg("mlr")` this function is wrapped as `classif.knn`.
 
 
 ```{r findKNN, warning=FALSE}
@@ -444,9 +441,9 @@ filter(all_cl, str_detect("knn", all_cl$short.name))
 
 ## Define the learner and set the hyperparameters {#hyper}
 
-Before we can use the classifier, we need to choose the number of
-neighbors to consider. Here, we simply fix this at 5 neighbors^[Large ks reduce
-the noise but result in a less adaptive algorithm.]. In practice
+Before we can use the knn--classifier, we need to choose the number of
+neighbors to consider. Here, we simply fix this at 5 neighbors^[Large values of 
+k reduce the noise but result in a less adaptive algorithm.]. In practice
 this is a tuning parameter that would be optimized based on e.g. a grid
 of neighbor--values (from 3 to 10 say) and resampling based methods like 
 nested cross--validation.^[See the classic [paper by Ambroise and MacLachlan](http://www.pnas.org/content/99/10/6562.short) for a discussion
@@ -465,7 +462,7 @@ getHyperPars(lrn)
 ## Train and evaluate the classifier
 
 We are now ready to train the classifier. For this we perform a simple
-train--test split: We use \(\frac{2}{3}\) of the observations (96 wells) for training
+train--test split: We use 80% of the data (77 wells) for training
 and evaluate the classifier on the rest.
 
 Not that it is very important to perform these splits, as evaluation an ML
@@ -477,7 +474,7 @@ also true for selecting the tuning parameters, see the note in section \@ref(hyp
 
 n <- getTaskSize(cl_task)
 
-train_set <- sample(n, size = n/3)
+train_set <- sample(n, size = round(n * 0.8))
 head(train_set)
 
 screen_knn <- train(lrn, cl_task, subset = train_set)
@@ -507,7 +504,7 @@ This can be seen in the so--called confusion matrix.
 calculateConfusionMatrix(pred = pred)
 ```
 
-We immediately see that we make more error within the positive 
+We immediately see that we make more mistakes within the positive (target)
 than within the negative class. As the PCA plot shows, there 
 are some target wells that cluster with the negative ones, those are
 obviously hard to predict via a nearest--neighbor technique.
@@ -519,7 +516,7 @@ in two--dimensions. Here, we select two feature, "ana" and "inter" which
 we suspect in being important to discriminate between target and negative
 wells and train a our knn classifier only on them. 
 
-The function <plotLearnerPrediction> then visualizes the prediction 
+The function `plotLearnerPrediction` then visualizes the prediction 
 boundary. 
 
 
@@ -536,6 +533,8 @@ learn_pl
 Indeed, the two features separate our two groups fairly well but there
 are some target wells that cluster together with the negative ones.
 This plot is quite similar to the PCA plot (Figure \@ref(fig:PCA)).
+This is unsurprsing since our two features are highly correlated 
+to the the fist two PCs.^[See the correlation circle in Figure \@ref(fig:coCircle)]. 
 
 These might be wells where the siRNAs or the experiment simply did not work.
 (The data is the result of an experiment performed by course participants
@@ -549,3 +548,4 @@ who performed such a screen for the very first time).
 sessionInfo()
 ```
 
+# References

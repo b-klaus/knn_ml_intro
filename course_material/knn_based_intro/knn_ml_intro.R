@@ -25,7 +25,7 @@ library("RColorBrewer")
 library("mlr")
 library("psych")
 
-set.seed(789)
+set.seed(222)
 
 theme_set(theme_solarized(base_size = 18))
 
@@ -133,7 +133,7 @@ ggplot(loadings_gg, aes(x = class, y = loading, fill = class)) +
       scale_fill_brewer(type = "qual", palette = "Set3") 
 
 
-## ----coCircle, dependson="var_imp", fig.small=TRUE-----------------------
+## ----coCircle, dependson="var_imp", fig.small=TRUE, fig.cap="Correlation Circle"----
 fviz_pca_var(PCA, col.circle = "black", 
              title = "Correlation Circle for the PCA") + 
               coord_equal() 
@@ -155,7 +155,7 @@ getHyperPars(lrn)
 
 n <- getTaskSize(cl_task)
 
-train_set <- sample(n, size = n/3)
+train_set <- sample(n, size = round(n * 0.8))
 head(train_set)
 
 screen_knn <- train(lrn, cl_task, subset = train_set)
